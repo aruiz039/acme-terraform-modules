@@ -3,7 +3,7 @@ terraform {
   required_providers {
     cloudflare = {
       source  = "cloudflare/cloudflare"
-      version = "~> 4.52"   # latest v4, before v5 breaking changes
+      version = "~> 4.52" # latest v4, before v5 breaking changes
     }
   }
 }
