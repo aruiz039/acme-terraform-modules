@@ -162,10 +162,75 @@ resource "aws_ec2_transit_gateway_vpc_attachment" "this" {
 # Flow Logs
 # ---------------------------------------------------------
 
+# KMS key for log encryption — only created if consumer didn't pass one
+resource "aws_kms_key" "flow_logs" {
+  count = var.enable_flow_logs && var.flow_logs_kms_key_arn == null ? 1 : 0
+
+  description             = "KMS key for ${var.name} VPC flow logs"
+  deletion_window_in_days = 7
+  enable_key_rotation     = true
+
+  # Allow CloudWatch Logs service to use the key
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "EnableIAMUserPermissions"
+        Effect = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::${data.aws_caller_identity.current[0].account_id}:root"
+        }
+        Action   = "kms:*"
+        Resource = "*"
+      },
+      {
+        Sid    = "AllowCloudWatchLogs"
+        Effect = "Allow"
+        Principal = {
+          Service = "logs.${data.aws_region.current[0].name}.amazonaws.com"
+        }
+        Action = [
+          "kms:Encrypt*",
+          "kms:Decrypt*",
+          "kms:ReEncrypt*",
+          "kms:GenerateDataKey*",
+          "kms:Describe*",
+        ]
+        Resource = "*"
+        Condition = {
+          ArnLike = {
+            "kms:EncryptionContext:aws:logs:arn" = "arn:aws:logs:${data.aws_region.current[0].name}:${data.aws_caller_identity.current[0].account_id}:log-group:/aws/vpc/${var.name}/*"
+          }
+        }
+      },
+    ]
+  })
+
+  tags = local.tags
+}
+
+resource "aws_kms_alias" "flow_logs" {
+  count = var.enable_flow_logs && var.flow_logs_kms_key_arn == null ? 1 : 0
+
+  name          = "alias/${var.name}-flow-logs"
+  target_key_id = aws_kms_key.flow_logs[0].key_id
+}
+
+# Data sources for the KMS policy
+data "aws_caller_identity" "current" {
+  count = var.enable_flow_logs && var.flow_logs_kms_key_arn == null ? 1 : 0
+}
+
+data "aws_region" "current" {
+  count = var.enable_flow_logs && var.flow_logs_kms_key_arn == null ? 1 : 0
+}
+
+# Log group — uses consumer-supplied key, or the one we just created
 resource "aws_cloudwatch_log_group" "flow_logs" {
   count             = var.enable_flow_logs ? 1 : 0
   name              = "/aws/vpc/${var.name}/flow-logs"
   retention_in_days = var.flow_logs_retention_days
+  kms_key_id        = var.flow_logs_kms_key_arn != null ? var.flow_logs_kms_key_arn : aws_kms_key.flow_logs[0].arn
   tags              = local.tags
 }
 
@@ -213,4 +278,19 @@ resource "aws_flow_log" "this" {
   traffic_type    = "ALL"
   iam_role_arn    = aws_iam_role.flow_logs[0].arn
   log_destination = aws_cloudwatch_log_group.flow_logs[0].arn
+}
+
+# ---------------------------------------------------------
+# Default security group — locked down
+# ---------------------------------------------------------
+# AWS creates a default SG with every VPC that allows all internal traffic.
+# We adopt it and explicitly remove all rules so anything accidentally
+# assigned to it gets no network access.
+resource "aws_default_security_group" "this" {
+  vpc_id = aws_vpc.this.id
+
+  # No ingress or egress rules = deny all
+  tags = merge(local.tags, {
+    Name = "${var.name}-default-locked"
+  })
 }

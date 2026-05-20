@@ -75,3 +75,9 @@ variable "tags" {
   type    = map(string)
   default = {}
 }
+
+variable "flow_logs_kms_key_arn" {
+  type        = string
+  default     = null
+  description = "Optional KMS key ARN for flow log group encryption. If null, a module-managed key is created."
+}

@@ -1,0 +1,5 @@
+skip-check:
+  - CKV2_AWS_5    # Module standalone; SG attaches in consumer
+  - CKV_AWS_290   # Network engineer role needs broad networking access
+  - CKV_AWS_355   # Same
+  - CKV_AWS_338   # Learning project. I don't want to pay for extra retention
