@@ -13,26 +13,26 @@ variable "vpc_id" {
 
 variable "ingress_rules" {
   type = list(object({
-    description      = string
-    from_port        = number
-    to_port          = number
-    protocol         = string
-    cidr_blocks      = optional(list(string), [])
-    source_sg_ids    = optional(list(string), [])
-    prefix_list_ids  = optional(list(string), [])
+    description     = string
+    from_port       = number
+    to_port         = number
+    protocol        = string
+    cidr_blocks     = optional(list(string), [])
+    source_sg_ids   = optional(list(string), [])
+    prefix_list_ids = optional(list(string), [])
   }))
   default = []
 }
 
 variable "egress_rules" {
   type = list(object({
-    description      = string
-    from_port        = number
-    to_port          = number
-    protocol         = string
-    cidr_blocks      = optional(list(string), [])
-    source_sg_ids    = optional(list(string), [])
-    prefix_list_ids  = optional(list(string), [])
+    description     = string
+    from_port       = number
+    to_port         = number
+    protocol        = string
+    cidr_blocks     = optional(list(string), [])
+    source_sg_ids   = optional(list(string), [])
+    prefix_list_ids = optional(list(string), [])
   }))
   default = [{
     description = "Allow all egress"

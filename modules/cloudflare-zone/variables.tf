@@ -18,7 +18,7 @@ variable "records" {
     name    = string
     type    = string
     value   = string
-    ttl     = optional(number, 1)   # 1 = auto
+    ttl     = optional(number, 1) # 1 = auto
     proxied = optional(bool, false)
   }))
   default = []
@@ -26,7 +26,7 @@ variable "records" {
 
 variable "ssl_mode" {
   type    = string
-  default = "full"   # full, strict, flexible, off
+  default = "full" # full, strict, flexible, off
 }
 
 variable "always_use_https" {

@@ -120,7 +120,7 @@ resource "aws_route" "private_nat" {
   route_table_id         = aws_route_table.private[count.index].id
   destination_cidr_block = "0.0.0.0/0"
   # If single NAT, all private RTs point to NAT[0]. Otherwise NAT per AZ.
-  nat_gateway_id         = aws_nat_gateway.this[var.single_nat_gateway ? 0 : count.index].id
+  nat_gateway_id = aws_nat_gateway.this[var.single_nat_gateway ? 0 : count.index].id
 }
 
 resource "aws_route_table_association" "private" {
