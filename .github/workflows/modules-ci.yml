@@ -1,0 +1,58 @@
+name: Modules CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.14.9"
+
+      - name: Format check
+        run: terraform fmt -check -recursive
+
+      - name: Setup tflint
+        uses: terraform-linters/setup-tflint@v4
+        with:
+          tflint_version: latest
+
+      - name: Lint each module
+        run: |
+          for dir in modules/*/; do
+            echo "Linting $dir"
+            cd "$dir"
+            terraform init -backend=false
+            terraform validate
+            tflint --init || true
+            tflint
+            cd - > /dev/null
+          done
+
+      - name: Checkov security scan
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: modules/
+          framework: terraform
+          soft_fail: true   # don't fail PR, but post findings
+
+  release:
+    needs: lint
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Release tag (manual for now)
+        run: |
+          echo "Run 'gh release create vX.Y.Z' manually after merging"
